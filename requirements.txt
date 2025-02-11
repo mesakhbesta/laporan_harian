@@ -2,3 +2,4 @@ streamlit
 pandas
 apify-client
 openai
+openpyxl
