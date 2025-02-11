@@ -8,8 +8,8 @@ from openai import OpenAI
 from io import BytesIO
 
 # Path folder untuk token
-APIFY_TOKEN_FOLDER = "D:/Magang/SM/Laporan Harian/Token Apify"
-GPT_TOKEN_FOLDER = "D:/Magang/SM/Laporan Harian/Token GPT"
+APIFY_TOKEN_FOLDER = "./Token Apify"
+GPT_TOKEN_FOLDER = "./Token GPT"
 
 # Fungsi memuat token dari file JSON
 def load_tokens(folder_path):
