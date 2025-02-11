@@ -4,12 +4,10 @@ import os
 import json
 from apify_client import ApifyClient
 from datetime import datetime, timedelta
-from openai import OpenAI
 from io import BytesIO
 
-# Path folder untuk token
+# Path folder untuk token Apify
 APIFY_TOKEN_FOLDER = "./Token Apify"
-GPT_TOKEN_FOLDER = "./Token GPT"
 
 # Fungsi memuat token dari file JSON
 def load_tokens(folder_path):
@@ -22,26 +20,31 @@ def load_tokens(folder_path):
                 tokens[filename] = data["api_key"]
     return tokens
 
-# Muat token Apify dan GPT
+# Muat token Apify
 apify_tokens = load_tokens(APIFY_TOKEN_FOLDER)
-gpt_tokens = load_tokens(GPT_TOKEN_FOLDER)
 
-# Sidebar untuk memilih token
+# Sidebar untuk memilih token Apify
 st.sidebar.title("Pengaturan Token")
 selected_apify_token_file = st.sidebar.selectbox("Pilih Token Apify", list(apify_tokens.keys()))
-selected_gpt_token_file = st.sidebar.selectbox("Pilih Token AI", list(gpt_tokens.keys()))
-
-# Token yang dipilih
 apify_token = apify_tokens[selected_apify_token_file]
-gpt_token = gpt_tokens[selected_gpt_token_file]
+
+# Upload token GPT dari file .txt
+st.sidebar.markdown("### Upload Token AI")
+uploaded_gpt_token_file = st.sidebar.file_uploader("Unggah file token AI (.txt)", type="txt")
+
+if uploaded_gpt_token_file:
+    gpt_token = uploaded_gpt_token_file.read().decode("utf-8").strip()
+    st.sidebar.success(f"Token AI berhasil diunggah!")
+else:
+    gpt_token = None
+    st.sidebar.warning("Silakan upload token AI terlebih dahulu.")
 
 st.sidebar.markdown(
     "⚠️ **Jika terjadi error atau limit token, coba ganti token yang dipilih di atas.**"
 )
 
-# Inisialisasi klien OpenAI dan Apify
+# Inisialisasi klien Apify jika token tersedia
 client_apify = ApifyClient(apify_token)
-client_gpt = OpenAI(api_key=gpt_token)
 
 # Fungsi untuk scraping dan analisis
 def scrape_and_analyze():
@@ -90,32 +93,29 @@ def scrape_and_analyze():
         Pada hasilnya tidak perlu diberi bold maupun header tapi susun dengan rapih.
         """
 
-        completion = client_gpt.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
-            ]
-        )
+        if gpt_token:
+            from openai import OpenAI
+            client_gpt = OpenAI(api_key=gpt_token)
 
-        hasil_analisis = completion.choices[0].message.content
-        return df, hasil_analisis
+            completion = client_gpt.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+
+            hasil_analisis = completion.choices[0].message.content
+            return df, hasil_analisis
+        else:
+            return df, "Token AI tidak tersedia. Silakan upload token terlebih dahulu."
     else:
         return pd.DataFrame(), "Tidak ada data yang diperoleh dari proses scraping."
 
 # UI Streamlit
 st.title("Analisis Kejadian Instagram")
 
-st.markdown("""
-Pantau kejadian terkini di Semarang dengan mudah menggunakan aplikasi ini. Pastikan Anda mengganti token di bagian samping jika mengalami masalah.
-
-#### Cara Menggunakan 🚀
-1. Pilih token Apify dan AI di sidebar.
-2. Klik tombol "Mulai Scraping dan Analisis".
-3. Lihat hasil analisis dan ekspor data sesuai kebutuhan.
-
----
-""")
+st.markdown("""Pantau kejadian terkini di Semarang dengan mudah menggunakan aplikasi ini.""")
 
 if st.button("Mulai Scraping dan Analisis"):
     with st.spinner("Sedang melakukan scraping dan analisis data... Mohon tunggu..."):
@@ -139,10 +139,8 @@ if st.button("Mulai Scraping dan Analisis"):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-
     if analysis_result:
         st.subheader("📋 Hasil Analisis")
         st.write(analysis_result)
     else:
         st.error("Tidak ada data yang diperoleh dari proses scraping.")
-
