@@ -44,7 +44,6 @@ client_apify = ApifyClient(apify_token)
 client_gpt = OpenAI(api_key=gpt_token)
 
 # Fungsi untuk scraping dan analisis
-@st.cache_data(show_spinner=True)
 def scrape_and_analyze():
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
